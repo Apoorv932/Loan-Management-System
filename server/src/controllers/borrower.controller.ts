@@ -6,6 +6,7 @@ import { runBre } from "../services/bre.service.js";
 import { HttpError } from "../utils/httpError.js";
 import { loanConfigSchema, personalDetailsSchema } from "../validators/borrower.validator.js";
 import { asyncHandler } from "../utils/asynchandlers.js";
+import { uploadToCloudinary } from "../middleware/upload.middleware.js";
 
 export const getMyApplicationController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -64,7 +65,9 @@ export const uploadSalarySlipController = asyncHandler(async (req: Request, res:
     throw new HttpError(409, "Complete and pass the eligibility check before uploading salary slip.");
   }
 
-  application.salarySlipUrl = `/uploads/salary-slips/${req.file.filename}`;
+  const salarySlipUrl = await uploadToCloudinary(req.file.buffer, "salary-slips");
+
+  application.salarySlipUrl = salarySlipUrl;
   await application.save();
 
   return res.json({ message: "Salary slip uploaded successfully.", application });

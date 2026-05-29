@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { connectDb } from "../config/db.js";
 import { User } from "../models/User.js";

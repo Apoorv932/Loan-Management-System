@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { User } from "../models/User.js";
 import { HttpError } from "../utils/httpError.js";
 import { signAuthToken } from "../utils/jwt.js";

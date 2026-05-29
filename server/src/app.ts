@@ -11,7 +11,28 @@ import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js"
 
 export const app = express();
 
-app.use(cors({ origin: env.clientUrl, credentials: true }));
+const allowedOrigins = [
+  env.clientUrl,
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+  "http://localhost:3002",
+  "http://127.0.0.1:3002"
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
+    credentials: true
+  })
+);
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.resolve("uploads")));
