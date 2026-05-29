@@ -1,0 +1,13 @@
+node_modules
+dist
+.next
+out
+*.tsbuildinfo
+.env
+.env.local
+.git-*
+uploads
+!uploads/
+!uploads/salary-slips/
+!uploads/salary-slips/.gitkeep
+npm-debug.log*
