@@ -1,49 +1,68 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getStoredUser } from "../../lib/auth";
-import type { AuthUser } from "../../types/user";
+import { DashboardModuleGuard } from "../../components/dashboard/DashboardModuleGuard";
+import { DashboardShell } from "../../components/dashboard/DashboardShell";
+import { apiRequest } from "../../lib/api";
+import { dashboardModuleByRole, getStoredUser } from "../../lib/auth";
 
-const modules = [
-  { href: "/dashboard/sales", label: "Sales", roles: ["ADMIN", "SALES"] },
-  { href: "/dashboard/sanction", label: "Sanction", roles: ["ADMIN", "SANCTION"] },
-  { href: "/dashboard/disbursement", label: "Disbursement", roles: ["ADMIN", "DISBURSEMENT"] },
-  { href: "/dashboard/collection", label: "Collection", roles: ["ADMIN", "COLLECTION"] }
-];
+type Summary = {
+  salesLeads: number;
+  appliedLoans: number;
+  sanctionedLoans: number;
+  disbursedLoans: number;
+  closedLoans: number;
+};
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const storedUser = getStoredUser();
-    if (!storedUser) {
+    const user = getStoredUser();
+    if (!user) {
       router.replace("/auth/login");
       return;
     }
-    if (storedUser.role === "BORROWER") {
+
+    if (user.role === "BORROWER") {
       router.replace("/borrower");
       return;
     }
-    setUser(storedUser);
+
+    if (user.role !== "ADMIN") {
+      router.replace(dashboardModuleByRole[user.role]);
+      return;
+    }
+
+    apiRequest<{ summary: Summary }>("/dashboard/summary")
+      .then((response) => setSummary(response.summary))
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load dashboard"));
   }, [router]);
 
-  const visibleModules = user ? modules.filter((module) => module.roles.includes(user.role)) : [];
-
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-6 py-10">
-      <h1 className="text-3xl font-semibold text-slate-950">Operations Dashboard</h1>
-      <p className="mt-2 text-slate-600">Role: {user?.role ?? "Checking..."}</p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {visibleModules.map((module) => (
-          <Link className="rounded-md border border-slate-200 bg-white p-5 shadow-sm" href={module.href} key={module.href}>
-            <h2 className="font-semibold text-slate-950">{module.label}</h2>
-            <p className="mt-2 text-sm text-slate-600">Phase 3 will add operational workflows.</p>
-          </Link>
-        ))}
-      </div>
-    </main>
+    <DashboardModuleGuard allowedRoles={["ADMIN"]}>
+      <DashboardShell title="Overview">
+        {error ? <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Metric label="Sales Leads" value={summary?.salesLeads} />
+          <Metric label="Applied" value={summary?.appliedLoans} />
+          <Metric label="Sanctioned" value={summary?.sanctionedLoans} />
+          <Metric label="Disbursed" value={summary?.disbursedLoans} />
+          <Metric label="Closed" value={summary?.closedLoans} />
+        </div>
+      </DashboardShell>
+    </DashboardModuleGuard>
+  );
+}
+
+function Metric({ label, value }: { label: string; value?: number }) {
+  return (
+    <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-medium text-slate-600">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-slate-950">{value ?? "-"}</p>
+    </div>
   );
 }

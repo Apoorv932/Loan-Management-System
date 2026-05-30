@@ -15,6 +15,14 @@ export type LoanApplication = {
 
 export type Loan = {
   _id: string;
+  userId?: {
+    _id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    createdAt: string;
+  };
+  applicationId?: LoanApplication;
   principalAmount: number;
   tenureDays: number;
   interestRate: number;
@@ -23,6 +31,35 @@ export type Loan = {
   totalPaid: number;
   outstandingAmount: number;
   status: "APPLIED" | "SANCTIONED" | "SANCTION_REJECTED" | "DISBURSED" | "CLOSED";
+  sanctionReason?: string;
+  rejectionReason?: string;
+  closedAt?: string;
+  createdAt?: string;
+};
+
+export type Payment = {
+  _id: string;
+  loanId: string;
+  utrNumber: string;
+  amount: number;
+  paymentDate: string;
+  recordedBy?: {
+    fullName: string;
+    email: string;
+    role: string;
+  };
+};
+
+export type SalesLead = {
+  borrower: {
+    _id: string;
+    fullName: string;
+    email: string;
+    role: string;
+    createdAt: string;
+  };
+  application: LoanApplication | null;
+  loan: Loan | null;
 };
 
 export type LoanCalculation = {
