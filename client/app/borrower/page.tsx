@@ -49,15 +49,9 @@ export default function BorrowerPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentStep = useMemo(() => {
-    if (loan) {
-      return 4;
-    }
-    if (application?.salarySlipUrl) {
-      return 3;
-    }
-    if (application?.breStatus === "PASSED") {
-      return 2;
-    }
+    if (loan) return 4;
+    if (application?.salarySlipUrl) return 3;
+    if (application?.breStatus === "PASSED") return 2;
     return 1;
   }, [application, loan]);
 
@@ -67,15 +61,20 @@ export default function BorrowerPage() {
       router.replace("/auth/login");
       return;
     }
-
     if (storedUser.role !== "BORROWER") {
       router.replace("/dashboard");
       return;
     }
-
     setUser(storedUser);
     void loadApplication();
   }, [router]);
+
+  // Poll every 10s while loan is pending action
+  useEffect(() => {
+    if (!loan || loan.status === "CLOSED" || loan.status === "SANCTION_REJECTED") return;
+    const id = setInterval(() => { void loadApplication(); }, 10000);
+    return () => clearInterval(id);
+  }, [loan?.status]);
 
   useEffect(() => {
     setCalculation(calculateLoan(principalAmount, tenureDays));
@@ -86,7 +85,6 @@ export default function BorrowerPage() {
       const response = await apiRequest<ApplicationState>("/borrower/application");
       setApplication(response.application);
       setLoan(response.loan);
-
       if (response.application) {
         setPersonalDetails({
           fullName: response.application.fullName ?? "",
@@ -106,14 +104,10 @@ export default function BorrowerPage() {
     setNotice("");
     setError("");
     setIsSubmitting(true);
-
     try {
       const response = await apiRequest<{ message: string; application: LoanApplication }>(
         "/borrower/personal-details",
-        {
-          method: "POST",
-          body: JSON.stringify(personalDetails)
-        }
+        { method: "POST", body: JSON.stringify(personalDetails) }
       );
       setApplication(response.application);
       setNotice(response.message);
@@ -129,16 +123,13 @@ export default function BorrowerPage() {
     event.preventDefault();
     setNotice("");
     setError("");
-
     if (!salarySlip) {
       setError("Choose a salary slip file before uploading.");
       return;
     }
-
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append("salarySlip", salarySlip);
-
     try {
       const response = await apiFormRequest<{ message: string; application: LoanApplication }>(
         "/borrower/salary-slip",
@@ -158,7 +149,6 @@ export default function BorrowerPage() {
     setNotice("");
     setError("");
     setIsSubmitting(true);
-
     try {
       const response = await apiRequest<{ message: string; loan: Loan }>("/borrower/loan/apply", {
         method: "POST",
@@ -345,8 +335,18 @@ export default function BorrowerPage() {
             <SummaryRow label="Total repayment" value={currencyFormatter.format(calculation?.totalRepayment ?? 0)} strong />
           </dl>
           {loan ? (
-            <div className="mt-6 rounded-md bg-teal-50 px-4 py-3 text-sm text-teal-900">
-              Loan status: <span className="font-semibold">{loan.status}</span>
+            <div className={"mt-6 rounded-md px-4 py-3 text-sm " + (
+              loan.status === "CLOSED" ? "bg-emerald-50 text-emerald-900" :
+              loan.status === "SANCTION_REJECTED" ? "bg-red-50 text-red-900" :
+              loan.status === "DISBURSED" ? "bg-teal-50 text-teal-900" :
+              loan.status === "SANCTIONED" ? "bg-amber-50 text-amber-900" :
+              "bg-sky-50 text-sky-900"
+            )}>
+              <p className="font-semibold">{loan.status.replaceAll("_", " ")}</p>
+              {loan.status === "DISBURSED" && <p className="mt-1 text-xs">Outstanding: {currencyFormatter.format(loan.outstandingAmount)}</p>}
+              {loan.status === "CLOSED" && <p className="mt-1 text-xs">Loan fully repaid.</p>}
+              {loan.status === "SANCTION_REJECTED" && loan.rejectionReason && <p className="mt-1 text-xs">Reason: {loan.rejectionReason}</p>}
+              <p className="mt-1 text-xs opacity-70">Auto-refreshes every 10s</p>
             </div>
           ) : null}
         </aside>
@@ -365,21 +365,10 @@ function Field({ children, label }: { children: React.ReactNode; label: string }
 }
 
 function Slider({
-  label,
-  min,
-  max,
-  step,
-  value,
-  valueLabel,
-  onChange
+  label, min, max, step, value, valueLabel, onChange
 }: {
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  value: number;
-  valueLabel: string;
-  onChange: (value: number) => void;
+  label: string; min: number; max: number; step: number;
+  value: number; valueLabel: string; onChange: (value: number) => void;
 }) {
   return (
     <label className="block">
@@ -389,12 +378,9 @@ function Slider({
       </span>
       <input
         className="mt-3 w-full accent-teal-700"
-        max={max}
-        min={min}
+        max={max} min={min}
         onChange={(event) => onChange(Number(event.target.value))}
-        step={step}
-        type="range"
-        value={value}
+        step={step} type="range" value={value}
       />
     </label>
   );
@@ -413,13 +399,5 @@ function calculateLoan(principalAmount: number, tenureDays: number): LoanCalcula
   const interestRate = 12;
   const interestAmount = Number(((principalAmount * interestRate * tenureDays) / (365 * 100)).toFixed(2));
   const totalRepayment = Number((principalAmount + interestAmount).toFixed(2));
-
-  return {
-    principalAmount,
-    tenureDays,
-    interestRate,
-    interestAmount,
-    totalRepayment,
-    outstandingAmount: totalRepayment
-  };
+  return { principalAmount, tenureDays, interestRate, interestAmount, totalRepayment, outstandingAmount: totalRepayment };
 }

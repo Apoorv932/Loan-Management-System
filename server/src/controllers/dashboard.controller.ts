@@ -6,11 +6,12 @@ import { User } from "../models/User.js";
 import { recordPayment } from "../services/payment.service.js";
 import { HttpError } from "../utils/httpError.js";
 import { paymentSchema, sanctionDecisionSchema } from "../validators/dashboard.validator.js";
+import { asyncHandler } from "../utils/asynchandlers.js";
 
 const userSelect = "fullName email role createdAt";
 const applicationSelect = "fullName pan monthlySalary employmentMode breStatus salarySlipUrl createdAt";
 
-export async function getDashboardSummaryController(_req: Request, res: Response) {
+export const getDashboardSummaryController = asyncHandler(async (_req: Request, res: Response) => {
   const [salesLeads, appliedLoans, sanctionedLoans, disbursedLoans, closedLoans] = await Promise.all([
     User.countDocuments({ role: "BORROWER" }),
     Loan.countDocuments({ status: "APPLIED" }),
@@ -19,31 +20,23 @@ export async function getDashboardSummaryController(_req: Request, res: Response
     Loan.countDocuments({ status: "CLOSED" })
   ]);
 
-  return res.json({
-    summary: {
-      salesLeads,
-      appliedLoans,
-      sanctionedLoans,
-      disbursedLoans,
-      closedLoans
-    }
-  });
-}
+  return res.json({ summary: { salesLeads, appliedLoans, sanctionedLoans, disbursedLoans, closedLoans } });
+});
 
-export async function getSalesLeadsController(_req: Request, res: Response) {
+export const getSalesLeadsController = asyncHandler(async (_req: Request, res: Response) => {
   const borrowers = await User.find({ role: "BORROWER" })
     .select(userSelect)
     .sort({ createdAt: -1 })
     .lean();
 
-  const borrowerIds = borrowers.map((borrower) => borrower._id);
+  const borrowerIds = borrowers.map((b) => b._id);
   const [applications, loans] = await Promise.all([
     LoanApplication.find({ userId: { $in: borrowerIds } }).select(applicationSelect).lean(),
     Loan.find({ userId: { $in: borrowerIds } }).select("userId status createdAt").lean()
   ]);
 
-  const applicationByUserId = new Map(applications.map((application) => [String(application.userId), application]));
-  const loanByUserId = new Map(loans.map((loan) => [String(loan.userId), loan]));
+  const applicationByUserId = new Map(applications.map((a) => [String(a.userId), a]));
+  const loanByUserId = new Map(loans.map((l) => [String(l.userId), l]));
 
   const leads = borrowers
     .map((borrower) => ({
@@ -54,25 +47,20 @@ export async function getSalesLeadsController(_req: Request, res: Response) {
     .filter((lead) => !lead.loan);
 
   return res.json({ leads });
-}
+});
 
-export async function getSanctionLoansController(_req: Request, res: Response) {
+export const getSanctionLoansController = asyncHandler(async (_req: Request, res: Response) => {
   const loans = await findLoansByStatus("APPLIED");
   return res.json({ loans });
-}
+});
 
-export async function approveLoanController(req: Request, res: Response) {
+export const approveLoanController = asyncHandler(async (req: Request, res: Response) => {
   const userId = requireUserId(req);
   const input = sanctionDecisionSchema.parse(req.body);
   const loan = await Loan.findById(req.params.loanId);
 
-  if (!loan) {
-    throw new HttpError(404, "Loan not found.");
-  }
-
-  if (loan.status !== "APPLIED") {
-    throw new HttpError(409, "Only applied loans can be sanctioned.");
-  }
+  if (!loan) throw new HttpError(404, "Loan not found.");
+  if (loan.status !== "APPLIED") throw new HttpError(409, "Only applied loans can be sanctioned.");
 
   loan.status = "SANCTIONED";
   loan.sanctionReason = input.reason;
@@ -80,61 +68,48 @@ export async function approveLoanController(req: Request, res: Response) {
   loan.sanctionedBy = userId as never;
   await loan.save();
 
-  const populatedLoan = await findLoanById(String(loan._id));
-  return res.json({ message: "Loan sanctioned successfully.", loan: populatedLoan });
-}
+  return res.json({ message: "Loan sanctioned successfully.", loan: await findLoanById(String(loan._id)) });
+});
 
-export async function rejectLoanController(req: Request, res: Response) {
+export const rejectLoanController = asyncHandler(async (req: Request, res: Response) => {
   const input = sanctionDecisionSchema.parse(req.body);
   const loan = await Loan.findById(req.params.loanId);
 
-  if (!loan) {
-    throw new HttpError(404, "Loan not found.");
-  }
-
-  if (loan.status !== "APPLIED") {
-    throw new HttpError(409, "Only applied loans can be rejected.");
-  }
+  if (!loan) throw new HttpError(404, "Loan not found.");
+  if (loan.status !== "APPLIED") throw new HttpError(409, "Only applied loans can be rejected.");
 
   loan.status = "SANCTION_REJECTED";
   loan.rejectionReason = input.reason;
   await loan.save();
 
-  const populatedLoan = await findLoanById(String(loan._id));
-  return res.json({ message: "Loan rejected.", loan: populatedLoan });
-}
+  return res.json({ message: "Loan rejected.", loan: await findLoanById(String(loan._id)) });
+});
 
-export async function getDisbursementLoansController(_req: Request, res: Response) {
+export const getDisbursementLoansController = asyncHandler(async (_req: Request, res: Response) => {
   const loans = await findLoansByStatus("SANCTIONED");
   return res.json({ loans });
-}
+});
 
-export async function disburseLoanController(req: Request, res: Response) {
+export const disburseLoanController = asyncHandler(async (req: Request, res: Response) => {
   const userId = requireUserId(req);
   const loan = await Loan.findById(req.params.loanId);
 
-  if (!loan) {
-    throw new HttpError(404, "Loan not found.");
-  }
-
-  if (loan.status !== "SANCTIONED") {
-    throw new HttpError(409, "Only sanctioned loans can be disbursed.");
-  }
+  if (!loan) throw new HttpError(404, "Loan not found.");
+  if (loan.status !== "SANCTIONED") throw new HttpError(409, "Only sanctioned loans can be disbursed.");
 
   loan.status = "DISBURSED";
   loan.disbursedBy = userId as never;
   await loan.save();
 
-  const populatedLoan = await findLoanById(String(loan._id));
-  return res.json({ message: "Loan marked as disbursed.", loan: populatedLoan });
-}
+  return res.json({ message: "Loan marked as disbursed.", loan: await findLoanById(String(loan._id)) });
+});
 
-export async function getCollectionLoansController(_req: Request, res: Response) {
+export const getCollectionLoansController = asyncHandler(async (_req: Request, res: Response) => {
   const loans = await findLoansByStatus("DISBURSED");
   return res.json({ loans });
-}
+});
 
-export async function recordPaymentController(req: Request, res: Response) {
+export const recordPaymentController = asyncHandler(async (req: Request, res: Response) => {
   const userId = requireUserId(req);
   const input = paymentSchema.parse(req.body);
 
@@ -152,15 +127,15 @@ export async function recordPaymentController(req: Request, res: Response) {
     payment: result.payment,
     loan
   });
-}
+});
 
-export async function getLoanPaymentsController(req: Request, res: Response) {
+export const getLoanPaymentsController = asyncHandler(async (req: Request, res: Response) => {
   const payments = await Payment.find({ loanId: getParam(req, "loanId") })
     .populate("recordedBy", "fullName email role")
     .sort({ paymentDate: -1, createdAt: -1 });
 
   return res.json({ payments });
-}
+});
 
 function findLoansByStatus(status: "APPLIED" | "SANCTIONED" | "DISBURSED") {
   return Loan.find({ status })
@@ -170,22 +145,18 @@ function findLoansByStatus(status: "APPLIED" | "SANCTIONED" | "DISBURSED") {
 }
 
 function findLoanById(loanId: string) {
-  return Loan.findById(loanId).populate("userId", userSelect).populate("applicationId", applicationSelect);
+  return Loan.findById(loanId)
+    .populate("userId", userSelect)
+    .populate("applicationId", applicationSelect);
 }
 
 function requireUserId(req: Request) {
-  if (!req.user?.id) {
-    throw new HttpError(401, "Authentication required.");
-  }
-
+  if (!req.user?.id) throw new HttpError(401, "Authentication required.");
   return req.user.id;
 }
 
 function getParam(req: Request, name: string) {
   const value = req.params[name];
-  if (typeof value !== "string") {
-    throw new HttpError(400, `Invalid route parameter: ${name}`);
-  }
-
+  if (typeof value !== "string") throw new HttpError(400, `Invalid route parameter: ${name}`);
   return value;
 }

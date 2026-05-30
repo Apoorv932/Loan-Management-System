@@ -22,14 +22,7 @@ async function seed() {
   for (const user of seedUsers) {
     await User.updateOne(
       { email: user.email },
-      {
-        $set: {
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          passwordHash
-        }
-      },
+      { $set: { fullName: user.fullName, email: user.email, role: user.role, passwordHash } },
       { upsert: true }
     );
   }

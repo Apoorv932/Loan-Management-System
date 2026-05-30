@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getStoredUser } from "../../lib/auth";
+import { dashboardModuleByRole, getStoredUser } from "../../lib/auth";
 import type { AuthUser, Role } from "../../types/user";
 
 type DashboardModuleGuardProps = {
@@ -28,7 +28,7 @@ export function DashboardModuleGuard({ allowedRoles, children }: DashboardModule
     }
 
     if (!allowedRoles.includes(storedUser.role)) {
-      router.replace("/dashboard");
+      router.replace(dashboardModuleByRole[storedUser.role]);
       return;
     }
 

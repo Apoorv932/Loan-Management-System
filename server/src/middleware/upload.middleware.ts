@@ -16,15 +16,11 @@ const storage = multer.diskStorage({
 
 export const salarySlipUpload = multer({
   storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024
-  },
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, callback) => {
     if (!allowedMimeTypes.has(file.mimetype)) {
-      callback(new HttpError(400, "Salary slip must be a PDF, JPG, or PNG file."));
-      return;
+      return callback(new Error("Salary slip must be a PDF, JPG, or PNG file.") as unknown as null, false);
     }
-
     callback(null, true);
   }
 });

@@ -5,16 +5,16 @@ import { calculateLoan } from "../services/loanCalculator.service.js";
 import { runBre } from "../services/bre.service.js";
 import { HttpError } from "../utils/httpError.js";
 import { loanConfigSchema, personalDetailsSchema } from "../validators/borrower.validator.js";
+import { asyncHandler } from "../utils/asynchandlers.js";
 
-export async function getMyApplicationController(req: Request, res: Response) {
+export const getMyApplicationController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const application = await LoanApplication.findOne({ userId });
   const loan = await Loan.findOne({ userId }).sort({ createdAt: -1 });
-
   return res.json({ application, loan });
-}
+});
 
-export async function submitPersonalDetailsController(req: Request, res: Response) {
+export const submitPersonalDetailsController = asyncHandler(async (req: Request, res: Response) => {
   const userId = requireUserId(req);
   const input = personalDetailsSchema.parse(req.body);
   const bre = runBre({
@@ -50,14 +50,10 @@ export async function submitPersonalDetailsController(req: Request, res: Respons
     });
   }
 
-  return res.json({
-    message: "Eligibility check passed.",
-    application,
-    bre
-  });
-}
+  return res.json({ message: "Eligibility check passed.", application, bre });
+});
 
-export async function uploadSalarySlipController(req: Request, res: Response) {
+export const uploadSalarySlipController = asyncHandler(async (req: Request, res: Response) => {
   const userId = requireUserId(req);
   if (!req.file) {
     throw new HttpError(400, "Salary slip file is required.");
@@ -71,18 +67,15 @@ export async function uploadSalarySlipController(req: Request, res: Response) {
   application.salarySlipUrl = `/uploads/salary-slips/${req.file.filename}`;
   await application.save();
 
-  return res.json({
-    message: "Salary slip uploaded successfully.",
-    application
-  });
-}
+  return res.json({ message: "Salary slip uploaded successfully.", application });
+});
 
-export async function calculateLoanController(req: Request, res: Response) {
+export const calculateLoanController = asyncHandler(async (req: Request, res: Response) => {
   const input = loanConfigSchema.parse(req.body);
   return res.json({ calculation: calculateLoan(input.principalAmount, input.tenureDays) });
-}
+});
 
-export async function applyLoanController(req: Request, res: Response) {
+export const applyLoanController = asyncHandler(async (req: Request, res: Response) => {
   const userId = requireUserId(req);
   const input = loanConfigSchema.parse(req.body);
 
@@ -112,16 +105,12 @@ export async function applyLoanController(req: Request, res: Response) {
     status: "APPLIED"
   });
 
-  return res.status(201).json({
-    message: "Loan application submitted successfully.",
-    loan
-  });
-}
+  return res.status(201).json({ message: "Loan application submitted successfully.", loan });
+});
 
 function requireUserId(req: Request) {
   if (!req.user?.id) {
     throw new HttpError(401, "Authentication required.");
   }
-
   return req.user.id;
 }

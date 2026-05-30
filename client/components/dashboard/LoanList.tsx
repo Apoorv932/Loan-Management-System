@@ -3,11 +3,8 @@
 import type { Loan } from "../../types/loan";
 import { StatusPill } from "./StatusPill";
 
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 2
-});
+const fmt = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 });
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api").replace("/api", "");
 
 export function LoanList({
   loans,
@@ -32,6 +29,7 @@ export function LoanList({
             <th className="px-4 py-3">Amount</th>
             <th className="px-4 py-3">Repayment</th>
             <th className="px-4 py-3">Outstanding</th>
+            <th className="px-4 py-3">Salary Slip</th>
             <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3">Actions</th>
           </tr>
@@ -44,9 +42,18 @@ export function LoanList({
                 <p className="text-xs text-slate-500">{loan.userId?.email}</p>
               </td>
               <td className="px-4 py-3">{loan.applicationId?.pan ?? "-"}</td>
-              <td className="px-4 py-3">{currencyFormatter.format(loan.principalAmount)}</td>
-              <td className="px-4 py-3">{currencyFormatter.format(loan.totalRepayment)}</td>
-              <td className="px-4 py-3">{currencyFormatter.format(loan.outstandingAmount)}</td>
+              <td className="px-4 py-3">{fmt.format(loan.principalAmount)}</td>
+              <td className="px-4 py-3">{fmt.format(loan.totalRepayment)}</td>
+              <td className="px-4 py-3">{fmt.format(loan.outstandingAmount)}</td>
+              <td className="px-4 py-3">
+                {loan.applicationId?.salarySlipUrl ? (
+                  <a className="text-teal-700 underline text-xs" href={`${BASE_URL}${loan.applicationId.salarySlipUrl}`} rel="noreferrer" target="_blank">
+                    View
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400">—</span>
+                )}
+              </td>
               <td className="px-4 py-3"><StatusPill status={loan.status} /></td>
               <td className="px-4 py-3">{renderActions?.(loan) ?? null}</td>
             </tr>
