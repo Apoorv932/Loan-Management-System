@@ -336,16 +336,17 @@ export default function BorrowerPage() {
             </button>
             {loan && loan.status === "CLOSED" && (
               <button
-                className="mt-5 ml-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-                onClick={() => {
-                  setLoan(null);
-                  setApplication(null);
-                  setNotice("Ready for a new application.");
-                }}
-                disabled={isApplying}
-              >
-                New Application
-              </button>
+                  type="button"
+                  className="mt-5 ml-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  onClick={() => {
+                    setLoan(null);
+                    setApplication(null);
+                    setNotice("Ready for a new application.");
+                  }}
+                  disabled={isApplying}
+                >
+                  New Application
+                </button>
             )}
           </form>
         </div>
