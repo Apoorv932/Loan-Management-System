@@ -2,22 +2,32 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6">
-      <div className="max-w-2xl">
-        <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">Loan Management System</p>
-        <h1 className="mt-3 text-4xl font-semibold text-slate-950">Borrower portal and operations dashboard</h1>
-        <p className="mt-4 text-lg text-slate-600">
-          Phase 1 foundation is ready for authentication, seeded roles, and protected dashboard access.
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 p-6">
+      <section className="max-w-lg rounded-xl bg-white/90 backdrop-blur-md shadow-lg p-8 text-center">
+        <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+          Loan Management System
         </p>
-        <div className="mt-8 flex gap-3">
-          <Link className="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white" href="/auth/login">
+        <h1 className="mt-4 text-3xl font-bold text-gray-900 md:text-4xl">
+          Borrower Portal &amp; Operations Dashboard
+        </h1>
+        <p className="mt-4 text-base text-gray-600">
+          Phase 1 foundation ready with authentication, seeded roles, and protected dashboard access.
+        </p>
+        <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <Link
+            href="/auth/login"
+            className="w-full rounded-md bg-indigo-700 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-800 sm:w-auto"
+          >
             Login
           </Link>
-          <Link className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium" href="/auth/signup">
+          <Link
+            href="/auth/signup"
+            className="w-full rounded-md border border-indigo-300 px-5 py-2.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-50 sm:w-auto"
+          >
             Sign up
           </Link>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

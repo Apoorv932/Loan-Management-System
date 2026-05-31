@@ -46,7 +46,9 @@ export default function BorrowerPage() {
   const [calculation, setCalculation] = useState<LoanCalculation | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEligibilitySubmitting, setIsEligibilitySubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
   const currentStep = useMemo(() => {
     if (loan) return 4;
@@ -103,7 +105,7 @@ export default function BorrowerPage() {
     event.preventDefault();
     setNotice("");
     setError("");
-    setIsSubmitting(true);
+    setIsEligibilitySubmitting(true);
     try {
       const response = await apiRequest<{ message: string; application: LoanApplication }>(
         "/borrower/personal-details",
@@ -115,7 +117,7 @@ export default function BorrowerPage() {
       await loadApplication();
       setError(err instanceof Error ? err.message : "Eligibility check failed");
     } finally {
-      setIsSubmitting(false);
+      setIsEligibilitySubmitting(false);
     }
   }
 
@@ -127,7 +129,7 @@ export default function BorrowerPage() {
       setError("Choose a salary slip file before uploading.");
       return;
     }
-    setIsSubmitting(true);
+    setIsUploading(true);
     const formData = new FormData();
     formData.append("salarySlip", salarySlip);
     try {
@@ -140,7 +142,7 @@ export default function BorrowerPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
-      setIsSubmitting(false);
+      setIsUploading(false);
     }
   }
 
@@ -148,7 +150,7 @@ export default function BorrowerPage() {
     event.preventDefault();
     setNotice("");
     setError("");
-    setIsSubmitting(true);
+    setIsApplying(true);
     try {
       // If a loan already exists and is closed, start a new application by resetting state
       if (loan && loan.status === "CLOSED") {
@@ -167,7 +169,7 @@ export default function BorrowerPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Loan application failed");
     } finally {
-      setIsSubmitting(false);
+      setIsApplying(false);
     }
   }
 
@@ -272,10 +274,10 @@ export default function BorrowerPage() {
             ) : null}
             <button
               className="mt-5 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              disabled={isSubmitting}
+              disabled={isEligibilitySubmitting}
               type="submit"
             >
-              {isSubmitting ? "Checking..." : "Run eligibility check"}
+                {isEligibilitySubmitting ? "Checking..." : "Run eligibility check"}
             </button>
           </form>
 
@@ -293,11 +295,11 @@ export default function BorrowerPage() {
               <p className="mt-3 text-sm text-emerald-700">Salary slip uploaded.</p>
             ) : null}
             <button
-              className="mt-5 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              disabled={isSubmitting || application?.breStatus !== "PASSED"}
-              type="submit"
+                className="mt-5 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                disabled={isUploading || application?.breStatus !== "PASSED"}
+                type="submit"
             >
-              {isSubmitting ? "Uploading..." : "Upload salary slip"}
+                {isUploading ? "Uploading..." : "Upload salary slip"}
             </button>
           </form>
 
@@ -313,23 +315,38 @@ export default function BorrowerPage() {
                 value={principalAmount}
                 valueLabel={currencyFormatter.format(principalAmount)}
               />
-              <Slider
-                label="Tenure"
-                max={365}
-                min={30}
-                onChange={setTenureDays}
-                step={5}
-                value={tenureDays}
-                valueLabel={`${tenureDays} days`}
-              />
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Tenure (days)</label>
+                <input
+                  type="number"
+                  min={30}
+                  max={3650}
+                  step={30}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2"
+                  value={tenureDays}
+                  onChange={(e) => setTenureDays(Number(e.target.value))}
+                />
+              </div>
             </div>
             <button
               className="mt-5 rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              disabled={isSubmitting || !application?.salarySlipUrl || (loan && loan.status !== "CLOSED")}
-              type="submit"
+              disabled={isApplying || !application?.salarySlipUrl}
             >
-              {isSubmitting ? "Applying..." : loan ? (loan.status === "CLOSED" ? "New Application" : "Application submitted") : "Apply"}
+              {isApplying ? "Applying..." : "Apply"}
             </button>
+            {loan && loan.status === "CLOSED" && (
+              <button
+                className="mt-5 ml-2 rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                onClick={() => {
+                  setLoan(null);
+                  setApplication(null);
+                  setNotice("Ready for a new application.");
+                }}
+                disabled={isApplying}
+              >
+                New Application
+              </button>
+            )}
           </form>
         </div>
 

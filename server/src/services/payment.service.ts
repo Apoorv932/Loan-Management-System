@@ -39,7 +39,7 @@ export async function recordPayment(input: {
   loan.totalPaid = Number((loan.totalPaid + input.amount).toFixed(2));
   loan.outstandingAmount = Number((loan.totalRepayment - loan.totalPaid).toFixed(2));
 
-  if (loan.outstandingAmount <= 0) {
+  if (loan.outstandingAmount < 1) {
     loan.outstandingAmount = 0;
     loan.status = "CLOSED";
     loan.closedAt = new Date();

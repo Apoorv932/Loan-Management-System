@@ -67,7 +67,7 @@ export const uploadToCloudinary = (fileBuffer: Buffer, folderName: string): Prom
         fs.writeFileSync(filePath, fileBuffer);
         
         const port = process.env.PORT || 5000;
-        const baseUrl = process.env.SERVER_URL ?? `http://localhost:${port}`;
+        const baseUrl = process.env.SERVER_URL ? process.env.SERVER_URL.replace(/\/+$/, "") : `http://localhost:${port}`;
         const fileUrl = `${baseUrl}/uploads/${folderName}/${fileName}`;
         resolve(fileUrl);
       } catch (err) {
