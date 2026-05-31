@@ -3,25 +3,7 @@ Demonstration Video Link:https://drive.google.com/file/d/1im76N-H8vlxCW942cLECsS
 
 A full‑stack MERN (MongoDB, Express, React/Next.js) loan management platform.
 
-## Architecture Overview
 
-```mermaid
-graph TD
-  subgraph Frontend
-    UI[Next.js (client)] --> API[REST API Calls]
-  end
-  subgraph Backend
-    API --> Auth[Auth Router]
-    API --> Borrower[Borrower Router]
-    API --> Dashboard[Dashboard Router]
-    API --> Payment[Payment Service]
-    Auth --> DB[(MongoDB)]
-    Borrower --> DB
-    Dashboard --> DB
-    Payment --> DB
-  end
-  DB -->|Mongoose Models| Models[Loan, Payment, User...]
-```
 
 ### Folder Structure
 
