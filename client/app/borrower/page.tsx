@@ -150,6 +150,14 @@ export default function BorrowerPage() {
     setError("");
     setIsSubmitting(true);
     try {
+      // If a loan already exists and is closed, start a new application by resetting state
+      if (loan && loan.status === "CLOSED") {
+        setLoan(null);
+        setApplication(null);
+        // The backend endpoint can handle a refresh request; here we simply clear UI state.
+        setNotice("Ready for a new application.");
+        return;
+      }
       const response = await apiRequest<{ message: string; loan: Loan }>("/borrower/loan/apply", {
         method: "POST",
         body: JSON.stringify({ principalAmount, tenureDays })
@@ -317,10 +325,10 @@ export default function BorrowerPage() {
             </div>
             <button
               className="mt-5 rounded-md bg-teal-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-              disabled={isSubmitting || !application?.salarySlipUrl || Boolean(loan)}
+              disabled={isSubmitting || !application?.salarySlipUrl || (loan && loan.status !== "CLOSED")}
               type="submit"
             >
-              {loan ? "Application submitted" : isSubmitting ? "Applying..." : "Apply"}
+              {isSubmitting ? "Applying..." : loan ? (loan.status === "CLOSED" ? "New Application" : "Application submitted") : "Apply"}
             </button>
           </form>
         </div>
