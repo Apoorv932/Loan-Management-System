@@ -67,7 +67,8 @@ export const uploadToCloudinary = (fileBuffer: Buffer, folderName: string): Prom
         fs.writeFileSync(filePath, fileBuffer);
         
         const port = process.env.PORT || 5000;
-        const fileUrl = `http://localhost:${port}/uploads/${folderName}/${fileName}`;
+        const baseUrl = process.env.SERVER_URL ?? `http://localhost:${port}`;
+        const fileUrl = `${baseUrl}/uploads/${folderName}/${fileName}`;
         resolve(fileUrl);
       } catch (err) {
         reject(err || new HttpError(500, "Failed to upload file locally."));

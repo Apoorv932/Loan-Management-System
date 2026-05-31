@@ -1,6 +1,0 @@
-{
-  "installCommand": "npm install --prefix server && npm install --prefix client",
-  "buildCommand": "npm run build --prefix server && npm run build --prefix client",
-  "outputDirectory": "client/.next",
-  "framework": "nextjs"
-}
